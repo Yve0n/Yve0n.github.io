@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AUTO HACK 2026 CTF 인프라 | Gayoung Lee</title>
+<meta name="description" content="AUTO HACK 2026 자동차 보안 CTF 본선 인프라와 CTFd 대시보드 구축·운영">
+<meta property="og:title" content="AUTO HACK 2026 CTF 인프라 | Gayoung Lee">
+<meta property="og:description" content="AUTO HACK 2026 자동차 보안 CTF 본선 인프라(k3s 팀 격리·CTFd 플러그인·감시/백업) 구축과 운영.">
+<meta property="og:type" content="article">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23090a0e'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%2385a3ea' stroke-width='1.4' opacity='0.55'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='%238f73e7'/%3E%3C/svg%3E">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --blue:#090a0e;
+    --line:#85a3ea;
+    --accent:#85a3ea;
+    --accent2:#8f73e7;
+    --accent-soft:rgba(140,163,217,.12);
+    --accent-line:rgba(143,164,214,.4);
+    --line-dim:rgba(143,164,214,.22);
+    --line-soft:rgba(143,164,214,.13);
+    --surface:rgba(140,163,217,.05);
+    --surface-hi:rgba(140,163,217,.09);
+    --text:#e8eaed;
+    --text-dim:#aeb2bc;
+    --muted:#6e7687;
+    --amber:#8f73e7;
+    --mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:'Pretendard', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--blue); color:var(--text); font-family:var(--sans);
+    background-image:
+      linear-gradient(var(--line-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-dim) 1px, transparent 1px);
+    background-size:26px 26px;
+  }
+  a{color:inherit; text-decoration:none;}
+  a:focus-visible{outline:2px solid var(--amber); outline-offset:3px;}
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px;}
+
+  nav{border-bottom:1px solid var(--line-dim); padding:18px 0; position:sticky; top:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(8px); z-index:50;}
+  nav .wrap{display:flex; justify-content:space-between; align-items:center;}
+  .back{font-family:var(--mono); font-size:13.5px; color:var(--text); transition:color .15s ease; display:inline-flex; align-items:center; min-height:44px;}
+  .back:hover{color:var(--line);}
+  .repo-btn{font-family:var(--mono); font-size:12.5px; padding:9px 18px; border:1px solid var(--line); transition:all .18s ease; display:inline-flex; align-items:center; min-height:44px;}
+  .repo-btn:hover{background:var(--line); color:#000;}
+
+  header.top{padding:60px 0 44px; border-bottom:1px solid var(--line-dim);}
+  .tag{font-family:var(--mono); font-size:11.5px; color:var(--line); border:1px solid var(--line-dim); padding:6px 14px; display:inline-block; margin-bottom:20px;}
+  h1{font-size:32px; font-weight:700; line-height:1.35; max-width:760px; text-wrap:balance;}
+  .subtitle{margin-top:10px; color:var(--muted); font-size:15px;}
+  .meta-row{margin-top:20px; display:flex; gap:28px; flex-wrap:wrap; font-family:var(--mono); font-size:13px; color:var(--muted);}
+  .meta-row b{color:var(--text); font-weight:600;}
+  .tech-tags{margin-top:22px; display:flex; flex-wrap:wrap; gap:7px;}
+  .tech-tags span{font-size:12.5px; border:1px solid var(--line-dim); padding:6px 12px; border-radius:4px; color:var(--text); font-family:var(--mono);}
+
+  section{padding:48px 0; border-bottom:1px solid var(--line-dim);}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; color:var(--line); letter-spacing:2px; margin-bottom:10px;}
+  h2{font-size:22px; font-weight:700; margin-bottom:20px; text-wrap:balance;}
+  h3.sub{font-size:16px; font-weight:700; margin:22px 0 10px; color:var(--text);}
+  p{color:var(--text); line-height:1.85; font-size:15.5px; margin-bottom:14px; max-width:800px; text-wrap:pretty;}
+  .card-note{background:var(--surface); border:1px solid var(--line-dim); padding:18px 20px; margin:10px 0 20px;}
+  .card-note p{margin-bottom:0; font-size:14.5px;}
+  .flow-box{margin-top:8px; margin-bottom:20px; font-family:var(--mono); font-size:13px; color:var(--line); background:var(--surface); border:1px solid var(--line-dim); padding:16px 18px; white-space:pre-wrap; line-height:2;}
+  .arch-flow{display:grid; gap:12px; margin:8px 0 22px;}
+  .flow-lane{background:var(--surface); border:1px solid var(--line-dim); padding:18px;}
+  .flow-lane .lane-title{font-family:var(--mono); font-size:11.5px; color:var(--line); letter-spacing:1px; margin-bottom:13px; font-weight:700; text-align:center;}
+  .flow-steps{display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:18px;}
+  .flow-steps span{position:relative; color:var(--text); background:var(--accent-soft); border:1px solid var(--line-dim); padding:8px 11px; font-size:12.5px; line-height:1.4; text-align:center;}
+  .flow-steps .result-step{color:#000; background:var(--line); border-color:var(--line); font-weight:800;}
+  .flow-steps span:not(:last-child)::after{content:'→'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); color:var(--line); font-family:var(--mono); font-weight:700;}
+  .feature-flow{margin:10px 0 18px;}
+  .surface-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:10px; margin-top:8px;}
+  .surface-card{background:var(--surface); border:1px solid var(--line-dim); padding:22px 18px 18px; text-align:center; min-height:250px; display:flex; flex-direction:column;}
+  .surface-card h4{font-size:16px; color:var(--text); margin-bottom:18px;}
+  .surface-body{flex:1; display:flex; flex-direction:column; justify-content:center;}
+  .surface-card .label{font-family:var(--mono); font-size:10.5px; color:var(--line); font-weight:700; letter-spacing:.6px; margin-bottom:7px;}
+  .surface-card p{font-size:13px; line-height:1.7; color:var(--text); margin-bottom:10px; max-width:none; font-weight:650;}
+  .surface-card .control-text{color:var(--text); font-weight:700;}
+  .surface-card .risk-arrow{color:var(--line); font-family:var(--mono); font-size:20px; font-weight:800; line-height:1; margin:2px 0 10px;}
+  .surface-card p:last-child{margin-bottom:0;}
+  .process-timeline{display:flex; justify-content:center; align-items:stretch; gap:28px; margin:18px 0 12px;}
+  .process-step{position:relative; flex:0 0 145px; background:var(--surface); border:1px solid var(--line-dim); padding:16px 14px; min-height:118px; display:flex; flex-direction:column; justify-content:center;}
+  .process-step:not(:last-child)::after{content:'→'; position:absolute; right:-22px; top:50%; transform:translateY(-50%); color:var(--line); font-family:var(--mono); font-size:18px; font-weight:700;}
+  .process-step .num{font-family:var(--mono); font-size:11px; color:var(--line); margin-bottom:10px; font-weight:700; text-align:center;}
+  .process-step b{display:block; color:var(--text); font-size:14px; margin-bottom:7px;}
+  .process-step .num b{display:inline; color:var(--text); font-size:14px; margin:0 0 0 6px;}
+  .process-step span{display:block; color:var(--muted); font-size:12.5px; line-height:1.6; text-align:center;}
+  .period-box{display:flex; justify-content:space-between; gap:16px; align-items:center; background:var(--accent-soft); border:1px solid var(--line-dim); padding:14px 16px; margin-bottom:20px;}
+  .period-box .label{font-family:var(--mono); font-size:11.5px; color:var(--line); font-weight:700;}
+  .period-box .value{font-size:14px; color:var(--text); font-weight:700;}
+
+  table{width:100%; border-collapse:collapse; margin-top:8px; background:var(--surface); border:1px solid var(--line-dim);}
+  th,td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--line-dim); font-size:14px; line-height:1.6; color:var(--text);}
+  .center-table th,.center-table td{text-align:center; vertical-align:middle;}
+  th{font-family:var(--mono); font-size:11.5px; color:var(--line); text-transform:uppercase; letter-spacing:.5px; background:var(--accent-soft);}
+  tr:last-child td{border-bottom:none;}
+  td:first-child, th:first-child{color:var(--text); font-weight:600;}
+
+  ul.notes li{color:var(--text); line-height:1.85; font-size:14.5px; margin-bottom:10px;}
+  .problem-lines{color:var(--text); line-height:1.95; font-size:14.5px; margin:8px 0 14px; max-width:900px;}
+  .result-grid{display:grid; gap:10px; margin:8px 0 18px;}
+  .result-item{background:var(--surface); border:1px solid var(--line-dim); padding:16px 18px; text-align:center;}
+  .result-item b{display:block; color:var(--text); font-size:14.5px; margin-bottom:8px;}
+  .result-item span{display:block; color:var(--text); font-size:14px; line-height:1.75;}
+  .plain-lines{color:var(--text); font-size:14.5px; line-height:1.9; margin-top:8px;}
+  .plain-lines div{margin-bottom:8px;}
+  .plain-lines div:last-child{margin-bottom:0;}
+
+  .timeline{margin-top:8px; display:flex; flex-direction:column;}
+  .tl-step{display:flex; gap:18px; padding:14px 0; border-bottom:1px solid var(--line-dim);}
+  .tl-step:last-child{border-bottom:none;}
+  .tl-num{font-family:var(--mono); font-size:13px; color:var(--line); min-width:26px; font-weight:700;}
+  .tl-body b{display:block; font-size:14.5px; margin-bottom:4px;}
+  .tl-body span{color:var(--muted); font-size:13.5px; line-height:1.7;}
+
+  .team-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:8px;}
+  .team-card{background:var(--surface); border:1px solid var(--line-dim); padding:16px 18px;}
+  .team-card .name{font-weight:700; font-size:14.5px; margin-bottom:10px;}
+  .team-card .role-inline{color:var(--line);}
+  .team-card .role{font-family:var(--mono); font-size:11.5px; color:var(--line); margin:4px 0 8px;}
+  .team-card .tasks{font-size:13px; color:var(--muted); line-height:1.7;}
+
+  .story-flow{position:relative; margin-top:10px; padding-left:18px;}
+  .story-flow::before{content:''; position:absolute; left:38px; top:24px; bottom:24px; width:2px; background:var(--accent-line); box-shadow:0 0 12px var(--accent-line);}
+  .story-step{display:grid; grid-template-columns:58px 1fr; gap:18px; align-items:center; padding:14px 0;}
+  .story-step .marker{position:relative; z-index:1; width:42px; height:42px; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--line-dim); color:var(--line); font-family:var(--mono); font-size:11px; font-weight:800;}
+  .story-step .content{background:var(--surface); border:1px solid var(--line-dim); padding:16px 18px; display:grid; grid-template-columns:74px 1fr; gap:18px; align-items:center;}
+  .story-step b{display:block; color:var(--line); font-family:var(--mono); font-size:13px; margin:0; text-align:center; letter-spacing:.5px;}
+  .story-step p{max-width:none; margin:0; color:var(--text); font-size:14px; line-height:1.8; text-align:left;}
+  .story-step.is-result .marker{background:var(--line); border-color:var(--line); color:#000;}
+  .story-step.is-result .content{border-color:var(--accent-line);}
+  .story-step.is-result p{font-weight:700;}
+
+  footer{padding:60px 0; text-align:center;}
+  footer p{color:var(--muted); font-family:var(--mono); font-size:12.5px; margin:0 auto 20px; max-width:none;}
+  footer a.cta{display:inline-flex; align-items:center; min-height:44px; font-family:var(--mono); font-size:13px; border:1px solid var(--line); padding:12px 26px; transition:all .18s ease;}
+  footer a.cta:hover{background:var(--line); color:#000;}
+
+  @media(max-width:720px){
+    h1{font-size:24px;} .team-grid{grid-template-columns:1fr;}
+    .process-timeline{align-items:center; flex-direction:column; gap:28px;}
+    .process-step{width:100%; max-width:280px; flex-basis:auto;}
+    .process-step:not(:last-child)::after{content:'↓'; right:50%; top:auto; bottom:-24px; transform:translateX(50%);}
+    .flow-steps{align-items:stretch; flex-direction:column; gap:22px;}
+    .flow-steps span{text-align:center;}
+    .flow-steps span:not(:last-child)::after{content:'↓'; right:50%; top:auto; bottom:-20px; transform:translateX(50%);}
+    .period-box{align-items:flex-start; flex-direction:column; gap:6px;}
+    .story-flow{padding-left:0;}
+    .story-flow::before{display:none;}
+    .story-step{grid-template-columns:1fr; gap:8px;}
+    .story-step .marker{margin:0 auto;}
+    .story-step .content{grid-template-columns:1fr; gap:8px; text-align:center;}
+    .story-step p{text-align:center;}
+    table, thead, tbody, th, td, tr{display:block;} th{display:none;}
+    td{border-bottom:none; padding:8px 0;} tr{border-bottom:1px solid var(--line-dim); padding:12px 0;}
+    td:first-child{margin-bottom:4px;}
+  }
+
+  /* ===== refreshed theme ===== */
+  html{scroll-behavior:smooth;}
+  body{
+    font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased;
+    background-color:var(--blue);
+    background-image:
+      linear-gradient(rgba(140,163,217,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140,163,217,.06) 1px, transparent 1px),
+      linear-gradient(rgba(140,163,217,.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140,163,217,.1) 1px, transparent 1px),
+      radial-gradient(68% 52% at 20% 2%, rgba(140,163,217,.16), transparent 62%),
+      radial-gradient(56% 44% at 90% 88%, rgba(145,125,211,.1), transparent 60%);
+    background-size:26px 26px, 26px 26px, 130px 130px, 130px 130px, 100% 100%, 100% 100%;
+    background-attachment:fixed;
+  }
+  #rain{position:fixed; inset:0; z-index:0; opacity:.34; pointer-events:none;}
+  nav, header.top, section, footer, .wrap{position:relative; z-index:1;}
+  .wrap{max-width:980px; padding:0 28px;}
+
+  nav{
+    padding:14px 0; border-bottom:1px solid var(--line-soft);
+    background:rgba(8,9,12,.72); backdrop-filter:blur(14px) saturate(140%);
+  }
+  .back{font-size:14px; font-weight:650; color:var(--muted); gap:7px; border-radius:8px; padding:0 10px; margin-left:-10px; transition:color .16s ease, background .16s ease;}
+  .back:hover{color:var(--text); background:var(--surface-hi);}
+  .repo-btn{font-size:13px; font-weight:650; border-radius:10px; border-color:var(--line-dim); background:var(--surface); padding:0 18px; transition:transform .16s ease, border-color .16s ease, background .16s ease;}
+  .repo-btn:hover{background:var(--surface-hi); border-color:var(--accent-line); color:var(--text); transform:translateY(-2px);}
+
+  header.top{padding:76px 0 52px; border-bottom:1px solid var(--line-soft);}
+  .tag{
+    font-size:12px; font-weight:650; letter-spacing:.06em; border-radius:999px;
+    border-color:var(--accent-line); background:var(--accent-soft); color:#a9c8ff;
+    padding:6px 14px; margin-bottom:22px;
+  }
+  h1{font-size:clamp(28px,4.6vw,40px); font-weight:780; letter-spacing:-.03em; line-height:1.22;}
+  .subtitle{margin-top:14px; font-size:16px; line-height:1.8; max-width:720px; word-break:keep-all;}
+  .meta-row{gap:24px; font-size:13px;}
+  .meta-row b{font-weight:650; color:var(--text);}
+
+  section{padding:64px 0; border-bottom:1px solid var(--line-soft);}
+  .eyebrow{font-size:12px; letter-spacing:.14em; font-weight:700; color:var(--accent); margin-bottom:12px;}
+  h2{font-size:clamp(22px,3.4vw,27px); font-weight:750; letter-spacing:-.025em; margin-bottom:22px;}
+  h3.sub{font-size:16.5px; font-weight:700; letter-spacing:-.015em; margin:26px 0 12px;}
+  p{color:var(--text-dim); font-size:15.5px; line-height:1.85;}
+  ul.notes li, .problem-lines, .plain-lines{color:var(--text-dim);}
+
+  .card-note,.flow-box,.flow-lane,.surface-card,.process-step,.result-item,.team-card,
+  .story-step .marker,.story-step .content,table,.period-box{
+    border-radius:12px; border-color:var(--line-dim);
+  }
+  .card-note,.flow-box,.flow-lane,.surface-card,.process-step,.result-item,.team-card,
+  .story-step .marker,.story-step .content,table{background:var(--surface);}
+  .flow-steps span,.tech-tags span{border-radius:8px; border-color:var(--line-dim);}
+  .tech-tags span{font-size:12.5px; font-weight:600; color:var(--text-dim); background:var(--surface);}
+  .flow-steps .result-step{color:#06080e; background:var(--accent); border-color:transparent;}
+  .story-step.is-result .marker{color:#06080e; background:var(--accent); border-color:transparent;}
+  th{letter-spacing:.1em; font-weight:700; background:var(--accent-soft); color:var(--accent);}
+  table{overflow:hidden;}
+  th,td{border-bottom:1px solid var(--line-soft);}
+
+  footer{padding:72px 0 86px;}
+  footer a.cta{font-size:13.5px; font-weight:700; border-radius:10px; border-color:transparent; background:var(--accent); color:#06080e; transition:box-shadow .18s ease, transform .18s ease;}
+  footer a.cta:hover{background:var(--accent); color:#06080e; transform:translateY(-2px); box-shadow:0 10px 30px rgba(110,168,255,.28);}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+</head>
+
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="back" href="index.html">← 돌아가기</a>
+    <span class="repo-btn" aria-label="저장소는 비공개">Private Repository</span>
+  </div>
+</nav>
+
+<header class="top">
+  <div class="wrap">
+    <div class="tag">PROJECT 04 · CTF INFRA / OPERATIONS</div>
+    <h1>AUTO HACK 2026 — 자동차 보안 CTF 대회 인프라 · 대시보드</h1>
+    <div class="meta-row">
+      <span><b> ROLE | 대회 운영 · 본선 인프라 설계/구축/운영 · CTFd 대시보드 플러그인 개발</b></span>
+    </div>
+    <div class="tech-tags">
+      <span>k3s</span><span>Docker Compose</span><span>CTFd</span><span>Python / Flask</span><span>nginx</span><span>MariaDB</span><span>Redis</span><span>WireGuard</span><span>Loki / Promtail / Grafana</span><span>GitHub Actions / GHCR</span><span>Shell</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">BACKGROUND</div>
+    <h2>01 프로젝트 개요</h2>
+    <p style="text-align: center;">AUTO HACK 2026은 차량 T-Box, EV 충전기, IVI, CAN 등 자동차 보안 문제를 다루는 CTF 대회입니다.<br>2026.11.17 ~ 11.20 광주에서 열린 본선(10팀)의 서버 인프라와 참가자·운영진 대시보드를 맡았습니다.</p>
+    <p class="problem-lines">
+      <b><br>1.  팀마다 독립된 문제 환경</b> — 같은 문제라도 팀끼리 서로 간섭하지 않는 인스턴스가 필요<br>
+      <b>2.  일반 CTF와 다른 채점 방식</b> — 팀별 플래그, IDS 채점, 현장 스태프 판정처럼 CTFd 기본 기능으로는 안 되는 채점<br>
+      <b>3.  3일간 멈추면 안 되는 운영</b> — 장애 감지, 백업, 대기 서버 전환까지 미리 준비
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">MY ROLE & PROCESS</div>
+    <h2>02 담당 역할 및 진행 방식</h2>
+    <div class="team-grid" style="grid-template-columns:1fr;">
+      <div class="team-card"><div class="name">이가영 · <span class="role-inline">인프라 · 대시보드</span></div><div class="tasks">본선 서버 구조 설계 · k3s 팀별 격리 · 인스턴스/채점 플러그인 개발 · 감시·백업·장애 대응 체계 · 보안 점검 · 대회 운영</div></div>
+    </div>
+    <p style="margin-top:18px; text-align: center;">대시보드 화면 연출은 팀원과 나눠 맡았고, 인프라 저장소는 직접 운영했습니다.<br>main = 서버에 올라간 코드라는 규칙으로 모든 변경을 기능 브랜치 → PR(변경 이유·시험 결과 기재) → main 순서로 관리했습니다.</p>
+    <div class="process-timeline">
+      <div class="process-step">
+        <div class="num">01 <b>대시보드</b></div>
+        <span>CTFd 커스텀 테마와<br>운영 플러그인 개발</span>
+      </div>
+      <div class="process-step">
+        <div class="num">02 <b>인프라 설계</b></div>
+        <span>server1 CTFd ·<br>server2 k3s 구성</span>
+      </div>
+      <div class="process-step">
+        <div class="num">03 <b>문제 연동</b></div>
+        <span>팀별 인스턴스 · T-Box ·<br>IDS 채점 연결</span>
+      </div>
+      <div class="process-step">
+        <div class="num">04 <b>점검</b></div>
+        <span>보안 점검 · 실서버 시험 ·<br>리허설</span>
+      </div>
+      <div class="process-step">
+        <div class="num">05 <b>본선 운영</b></div>
+        <span>대회 초기화 · 감시 ·<br>장애 대응</span>
+      </div>
+    </div>
+    <div class="period-box">
+      <span class="label">PERIOD</span>
+      <span class="value">2026.09 ~ 2026.11 | 본선 2026.11.17 ~ 11.20</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">ARCHITECTURE</div>
+    <h2>03 시스템 구성</h2>
+    <div class="arch-flow">
+      <div class="flow-lane">
+        <div class="lane-title">참가자 → 대시보드 (server1)</div>
+        <div class="flow-steps">
+          <span>참가자 브라우저</span>
+          <span>nginx (TLS · 보안 헤더)</span>
+          <span>CTFd + 커스텀 플러그인</span>
+          <span>MariaDB / Redis</span>
+          <span class="result-step">문제 · 채점 · 점수판</span>
+        </div>
+      </div>
+      <div class="flow-lane">
+        <div class="lane-title">문제 인스턴스 (server2)</div>
+        <div class="flow-steps">
+          <span>문제 창에서 켜기</span>
+          <span>CTFd → k3s API (전용 RBAC)</span>
+          <span>팀 네임스페이스에 Pod 생성</span>
+          <span>WireGuard VPN으로 접속</span>
+          <span class="result-step">60분 뒤 자동 종료</span>
+        </div>
+      </div>
+      <div class="flow-lane">
+        <div class="lane-title">운영 · 장애 대비</div>
+        <div class="flow-steps">
+          <span>watchdog 30초 점검</span>
+          <span>Slack/Discord 알림 · 자동 재시작</span>
+          <span>5분 단위 DB 백업 → server2</span>
+          <span class="result-step">server3 대기 서버로 전환</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">팀 격리 (k3s)</h3>
+    <table class="center-table">
+      <tr><th>영역</th><th>구성</th></tr>
+      <tr><td>네임스페이스</td><td>팀마다 별도 네임스페이스(team01~10 + 시험용 유령 팀), Kustomize overlay로 같은 규칙 적용</td></tr>
+      <tr><td>자원 제한</td><td>ResourceQuota · LimitRange로 팀별 CPU/메모리 상한, 팀 상태 폴더 용량 감시</td></tr>
+      <tr><td>네트워크</td><td>NetworkPolicy로 팀 간 통신 차단, 문제 포트 방화벽, VPN 방화벽</td></tr>
+      <tr><td>권한</td><td>CTFd에는 인스턴스 켜기·끄기에 필요한 권한만 준 ServiceAccount(RBAC), 일부 문제는 seccomp · AppArmor 적용</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">KEY FEATURES</div>
+    <h2>04 핵심 기능 — CTFd 플러그인</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <b>1. 팀별 인스턴스</b>
+        <span>문제 창에서 팀 전용 인스턴스를 켜고 끔. 참가자는 지금 볼 수 있는 문제의 인스턴스만 다룰 수 있고, 일시정지·대회 시간을 검사</span>
+      </div>
+      <div class="result-item">
+        <b>2. 팀별 플래그 · 스태프 판정 채점</b>
+        <span>팀마다 다른 플래그를 넣고, 다른 팀 플래그를 내면 기록. 플래그 없이 현장에서 판정하는 문제는 관리자 채점 표에서 처리</span>
+      </div>
+      <div class="result-item">
+        <b>3. IDS 채점 · 대회 타이머</b>
+        <span>IDS 문제 전용 화면·랭킹과 중계 API, EVSE·IVI·CAN 구간별 타이머를 대시보드에 연결</span>
+      </div>
+      <div class="result-item">
+        <b>4. 정보 노출 차단</b>
+        <span>다른 팀 화면·팀 API 차단, 계정·팀 정보 변경 막기, 제출 내역 숨김</span>
+      </div>
+      <div class="result-item">
+        <b>5. 이미지 기반 배포</b>
+        <span>main에 올리면 GitHub Actions가 시험 후 대시보드 이미지를 GHCR에 올리고, 서버는 커밋 해시 태그로 고정해 반영·되돌리기</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">SECURITY REVIEW</div>
+    <h2>05 대회 전 보안 점검</h2>
+    <p style="text-align: center;">서버·네트워크 관점과 참가자 우회 관점으로 나눠 점검하고, 찾은 문제를 고친 뒤 시험으로 확인했습니다.</p>
+    <table>
+      <tr><th>발견</th><th>조치</th></tr>
+      <tr><td>숨긴 문제의 인스턴스도 참가자가 켤 수 있음</td><td>볼 수 있는 문제에 연결된 인스턴스만 허용, 전체 목록 API는 운영진 전용 (보안 시험 16/16)</td></tr>
+      <tr><td>참가자가 계정 이름·이메일을 바꿔 팀원을 잠글 수 있음</td><td>CTFd 설정 + 플러그인에서 이름·이메일·비밀번호·팀 정보 변경 차단</td></tr>
+      <tr><td>관리 비밀번호가 sudo 기록을 거쳐 로그 수집기에 평문으로 들어감</td><td>비밀번호 교체, 표준입력으로만 전달, Promtail에서 명령줄 가림</td></tr>
+      <tr><td>제출한 플래그 원문이 로그로 수집됨</td><td>Promtail이 제출 문자열을 가림</td></tr>
+      <tr><td>Secure 쿠키·HSTS 없음, 지원 끝난 nginx, 약한 TLS 암호</td><td>보안 헤더 추가, nginx 1.28, TLS1.2는 ECDHE+GCM/CHACHA20만 허용</td></tr>
+      <tr><td>DB 덤프 권한 0644, 비밀번호가 명령줄에 노출</td><td>umask 077 · MYSQL_PWD 사용, 기존 사본 권한 600</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">OPERATIONS</div>
+    <h2>06 장애 대응 · 운영 자동화</h2>
+    <div class="story-flow">
+      <div class="story-step">
+        <div class="marker">01</div>
+        <div class="content">
+          <b>감시</b>
+          <p>두 서버의 systemd watchdog이 30초마다 컨테이너·Pod·디스크·인증서·서로의 서버 상태를 확인하고,<br>같은 문제는 10분에 한 번만 알림</p>
+        </div>
+      </div>
+      <div class="story-step">
+        <div class="marker">02</div>
+        <div class="content">
+          <b>자동 복구</b>
+          <p>멈춘 서비스는 재시작하되, DB·캐시는 쓰던 요청이 끊기지 않도록 알림만 보내고 사람이 판단</p>
+        </div>
+      </div>
+      <div class="story-step">
+        <div class="marker">03</div>
+        <div class="content">
+          <b>점검 모드</b>
+          <p>복구 중에는 표시 파일로 watchdog과 백업을 멈춰, 반쯤 복구된 DB가 켜지거나 최신 백업을 덮어쓰지 않게 함</p>
+        </div>
+      </div>
+      <div class="story-step is-result">
+        <div class="marker">04</div>
+        <div class="content">
+          <b>대회 초기화</b>
+          <p>미리보기 → 승인 → 백업 → 실행 순서의 초기화 스크립트로 시연 기록만 지우고, 실제 문제는 보호 목록으로 막음.<br>최근 백업이 15분보다 오래됐거나 대회가 이미 시작됐으면 스스로 멈춤</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="border-bottom:none;">
+  <div class="wrap">
+    <div class="eyebrow">TAKEAWAYS</div>
+    <h2>07 배운 점</h2>
+    <div class="plain-lines">
+      <div><b>• 실제 사용자가 있는 운영</b> — 10팀이 3일간 쓰는 서비스를 직접 운영하며, 기능보다 감시·백업·되돌리기 경로를 먼저 갖추는 것이 중요하다는 걸 체감</div>
+      <div><b>• 공격자를 참가자로 둔 설계</b> — 참가자 전원이 해커라는 전제로 권한·격리·로그를 설계하고, 남은 설계 한계(팀별 IP 부재 등)는 운영 규칙과 공지로 보완</div>
+      <div><b>• 기록이 남는 변경 관리</b> — 서버 상태와 저장소를 일치시키는 규칙과 인계 문서 덕분에 대회 중에도 변경 이력을 추적 가능</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>이가영 (Gayoung Lee) — eyoungblll30@gmail.com</p>
+    <a class="cta" href="index.html">다른 프로젝트 보기 →</a>
+  </div>
+</footer>
+
+
+<canvas id="rain"></canvas>
+<script>
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cv=document.getElementById('rain'), ctx=cv.getContext('2d');
+  var G='01ABCDEF/\\<>[]{}#$%&*+=?!~^|', SIZE=14, W,H,cols,drops,DPR;
+  function size(){
+    DPR=Math.min(2,window.devicePixelRatio||1);
+    W=window.innerWidth; H=window.innerHeight;
+    cv.width=W*DPR; cv.height=H*DPR;
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    cols=Math.ceil(W/SIZE);
+    drops=new Array(cols).fill(0).map(function(){return {y:Math.random()*-H, sp:24+Math.random()*50, lit:Math.random()<.18};});
+  }
+  var last=0;
+  function tick(ts){
+    var dt=Math.min(.05,(ts-last)/1000||0); last=ts;
+    ctx.fillStyle='#090a0e'; ctx.globalAlpha=.22; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
+    ctx.font=SIZE+'px ui-monospace, Menlo, monospace';
+    for(var i=0;i<cols;i++){
+      var d=drops[i]; d.y+=d.sp*dt;
+      if(d.y>H+SIZE){ d.y=-SIZE-Math.random()*180; d.sp=24+Math.random()*50; d.lit=Math.random()<.18; }
+      ctx.fillStyle=d.lit?'rgba(145,125,211,.42)':'rgba(140,163,217,.22)';
+      ctx.fillText(G[Math.floor(Math.random()*G.length)], i*SIZE, d.y);
+    }
+    requestAnimationFrame(tick);
+  }
+  size(); window.addEventListener('resize',size); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

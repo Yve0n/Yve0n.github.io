@@ -409,6 +409,7 @@
   const P1 = 'project-1-aws-devsecops.html';
   const P2 = 'project-2-security-automation.html';
   const P3 = 'project-3-incident-response.html';
+  const P4 = 'project-4-autohack-infra.html';
 
   const APPS = {
     readme:{
@@ -445,12 +446,13 @@
         '<div class="grp" style="margin-bottom:0"><h4>SECURITY ANALYSIS</h4><div class="tags"><span>Wireshark</span><span>Burp Suite</span><span>FTK Imager</span><span>Autopsy</span></div></div>'
     },
     projects:{
-      icon:'folder', label:'PROJECTS', title:'PROJECTS — 3개 항목', w:520, h:300,
+      icon:'folder', label:'PROJECTS', title:'PROJECTS — 4개 항목', w:520, h:340,
       html:
         '<h2>Projects</h2><p class="sub">05 — 프로젝트 · 눌러서 열기</p>'+
         '<button class="filerow" data-open="p1">'+SVG.shield+'<span class="n">AWS DevSecOps Control Plane</span><span class="m">PM</span></button>'+
         '<button class="filerow" data-open="p2">'+SVG.shield+'<span class="n">시스템 보안 자동 점검·조치</span><span class="m">PM</span></button>'+
-        '<button class="filerow" data-open="p3">'+SVG.shield+'<span class="n">침해사고 재현 및 대응</span><span class="m">PM</span></button>'
+        '<button class="filerow" data-open="p3">'+SVG.shield+'<span class="n">침해사고 재현 및 대응</span><span class="m">PM</span></button>'+
+        '<button class="filerow" data-open="p4">'+SVG.shield+'<span class="n">AUTO HACK 2026 CTF 인프라</span><span class="m">INFRA</span></button>'
     },
     p1:{
       icon:'shield', label:'PROJECT_01', title:'PROJECT_01 — AWS DevSecOps', w:560, h:440,
@@ -487,6 +489,18 @@
         '<div class="rolebox"><b>MY ROLE</b>PM · 취약/보완 인프라 구조 설계 · pfSense 연동 · 디스크 이미지 분석 · 백도어 생성</div>'+
         '<div class="grp" style="margin-top:18px"><h4>STACK</h4><div class="tags"><span>pfSense</span><span>Suricata</span><span>Wazuh SIEM</span><span>FTK Imager</span><span>Autopsy</span><span>VMware</span></div></div>'+
         '<a class="cta" href="'+P3+'">상세 페이지 열기 →</a>'
+    },
+    p4:{
+      icon:'shield', label:'PROJECT_04', title:'PROJECT_04 — AUTO HACK 2026', w:560, h:460,
+      html:
+        '<h2>AUTO HACK 2026 — 자동차 보안 CTF 인프라 · 대시보드</h2><p class="sub">Project 04 · 본선 2026.11.17–20 · 10팀</p>'+
+        '<ul class="bul">'+
+          '<li>CTFd 대시보드(server1)와 k3s 문제 서버(server2)로 본선 인프라를 설계·구축하고, 팀별 네임스페이스·NetworkPolicy·RBAC로 팀 인스턴스를 격리</li>'+
+          '<li>팀별 인스턴스, 팀별 플래그, IDS 채점, 현장 스태프 판정 등 CTFd 플러그인을 개발하고, watchdog 감시·5분 백업·대기 서버 전환으로 3일간 운영</li>'+
+        '</ul>'+
+        '<div class="rolebox"><b>MY ROLE</b>본선 인프라 설계·구축·운영 · CTFd 플러그인 개발 · 보안 점검 · 장애 대응 체계</div>'+
+        '<div class="grp" style="margin-top:18px"><h4>STACK</h4><div class="tags"><span>k3s</span><span>Docker Compose</span><span>CTFd</span><span>Python</span><span>nginx</span><span>WireGuard</span><span>Loki / Grafana</span><span>GitHub Actions</span></div></div>'+
+        '<a class="cta" href="'+P4+'">상세 페이지 열기 →</a>'
     },
     certs:{
       icon:'cap', label:'CERT.pdf', title:'CERT.pdf — 자격증 · 교육', w:490, h:430,

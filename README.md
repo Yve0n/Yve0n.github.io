@@ -11,6 +11,7 @@ Infrastructure / Cloud Security Engineer 포트폴리오. 빌드 과정 없는 �
 - `project-1-aws-devsecops.html` — AI 기반 AWS DevSecOps Control Plane
 - `project-2-security-automation.html` — Rocky Linux & DB 시스템 보안 자동화
 - `project-3-incident-response.html` — 보안 사고 원인 분석 및 대응 방안 도출
+- `project-4-autohack-infra.html` — AUTO HACK 2026 자동차 보안 CTF 인프라·대시보드
 
 `design-*.html`, `pick.html` 은 디자인 고를 때 쓴 미리보기 파일입니다. 배포에 필요 없으니 지워도 됩니다.
 
